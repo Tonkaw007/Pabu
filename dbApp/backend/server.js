@@ -3,10 +3,8 @@ const sqlite3 = require("sqlite3").verbose();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
-
 const app = express()
 app.use(express.json())
-
 
 const db = new sqlite3.Database("./parkingDB.db", (err) => {
     if (err) console.error(err.message);
@@ -419,9 +417,6 @@ app.put("/penalties/:penalty_id", (req, res) => {
     );
 });
 
-
-
-//รอแก้
 //Notifications
 // POST /notifications: ส่งการแจ้งเตือน
 app.post("/notifications", (req, res) => {
