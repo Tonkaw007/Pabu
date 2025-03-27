@@ -373,26 +373,23 @@ app.delete("/payments/:payment_id", (req, res) => {
 //Penalties
 // POST /penalties: การบันทึกค่าปรับ
 app.post("/penalties", (req, res) => {
-    const { user_id, reservation_id, actual_exit_time, amount, status } = req.body;
+    const { reservation_id, actual_exit_time, amount, status } = req.body;
     const created_at = new Date().toISOString();
 
-
-    if (!user_id || !reservation_id || !amount || !status) {
+    if (!reservation_id || !amount || !status || !actual_exit_time) {
         return res.status(400).send({ message: "Missing required fields" });
     }
 
-
     db.run(
-        `INSERT INTO penalties (user_id, reservation_id, actual_exit_time, amount, status, created_at)
-        VALUES (?, ?, ?, ?, ?, ?)`,
-        [user_id, reservation_id, actual_exit_time, amount, status, created_at],
+        `INSERT INTO penalties (reservation_id, actual_exit_time, amount, status, created_at)
+        VALUES (?, ?, ?, ?, ?)`,
+        [reservation_id, actual_exit_time, amount, status, created_at],
         function (err) {
             if (err) return res.status(500).send({ message: "Error recording penalty" });
             res.status(201).send({ message: "Penalty recorded successfully", penalty_id: this.lastID });
         }
     );
 });
-
 
 // GET /penalties: ดึงข้อมูลค่าปรับทั้งหมด
 app.get("/penalties", (req, res) => {
@@ -402,17 +399,14 @@ app.get("/penalties", (req, res) => {
     });
 });
 
-
 // PUT /penalties/:penalty_id: อัพเดตสถานะค่าปรับ
 app.put("/penalties/:penalty_id", (req, res) => {
     const { penalty_id } = req.params;
     const { status } = req.body;
 
-
     if (!status) {
         return res.status(400).send({ message: "Missing penalty status" });
     }
-
 
     db.run(
         `UPDATE penalties SET status = ? WHERE penalty_id = ?`,
@@ -426,6 +420,8 @@ app.put("/penalties/:penalty_id", (req, res) => {
 });
 
 
+
+//รอแก้
 //Notifications
 // POST /notifications: ส่งการแจ้งเตือน
 app.post("/notifications", (req, res) => {
