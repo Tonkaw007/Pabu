@@ -425,19 +425,17 @@ app.put("/penalties/:penalty_id", (req, res) => {
 //Notifications
 // POST /notifications: ส่งการแจ้งเตือน
 app.post("/notifications", (req, res) => {
-    const { user_id, message, is_read } = req.body;
+    const { reservation_id, message, is_read } = req.body;
     const created_at = new Date().toISOString();
 
-
-    if (!user_id || !message || typeof is_read === 'undefined') {
+    if (!reservation_id || !message || typeof is_read === 'undefined') {
         return res.status(400).send({ message: "Missing required fields" });
     }
 
-
     db.run(
-        `INSERT INTO notifications (user_id, message, is_read, created_at)
+        `INSERT INTO notifications (reservation_id, message, is_read, created_at)
         VALUES (?, ?, ?, ?)`,
-        [user_id, message, is_read, created_at],
+        [reservation_id, message, is_read, created_at],
         function (err) {
             if (err) return res.status(500).send({ message: "Error sending notification" });
             res.status(201).send({ message: "Notification sent successfully", notification_id: this.lastID });
@@ -445,42 +443,38 @@ app.post("/notifications", (req, res) => {
     );
 });
 
+// GET /notifications/:reservation_id: ดึงการแจ้งเตือนตาม reservation_id
+app.get("/notifications/:reservation_id", (req, res) => {
+    const { reservation_id } = req.params;
 
-// GET /notifications/:user_id: ดึงการแจ้งเตือนสำหรับผู้ใช้
-app.get("/notifications/:user_id", (req, res) => {
-    const { user_id } = req.params;
-
-
-    db.all(`SELECT * FROM notifications WHERE user_id = ?`, [user_id], (err, rows) => {
+    db.all(`SELECT * FROM notifications WHERE reservation_id = ?`, [reservation_id], (err, rows) => {
         if (err) return res.status(500).send({ message: "Error fetching notifications" });
         res.send({ notifications: rows });
     });
 });
 
 
+
 //Barrier Control
 // POST /barrier-control: ควบคุมการพับที่กั้น
 app.post("/barrier-control", (req, res) => {
-    const { user_id, slot_id, action } = req.body;
+    const { reservation_id, action } = req.body;
     const action_time = new Date().toISOString();
 
-
-    if (!user_id || !slot_id || !action) {
+    if (!reservation_id || !action) {
         return res.status(400).send({ message: "Missing required fields" });
     }
 
-
     db.run(
-        `INSERT INTO barrier_control (user_id, slot_id, action, action_time)
-        VALUES (?, ?, ?, ?)`,
-        [user_id, slot_id, action, action_time],
+        `INSERT INTO barrier_control (reservation_id, action, action_time)
+        VALUES (?, ?, ?)`,
+        [reservation_id, action, action_time],
         function (err) {
             if (err) return res.status(500).send({ message: "Error controlling barrier" });
             res.status(201).send({ message: "Barrier control action recorded", control_id: this.lastID });
         }
     );
 });
-
 
 // GET /barrier-control: ดึงข้อมูลการควบคุมที่กั้นทั้งหมด
 app.get("/barrier-control", (req, res) => {
@@ -489,42 +483,5 @@ app.get("/barrier-control", (req, res) => {
         res.send({ barrier_control: rows });
     });
 });
-
-
-//Extensions
-// POST /extensions: การขอต่อเวลา
-app.post("/extensions", (req, res) => {
-    const { reservation_id, new_end_time, additional_fee } = req.body;
-
-
-    if (!reservation_id || !new_end_time || !additional_fee) {
-        return res.status(400).send({ message: "Missing required fields" });
-    }
-
-
-    db.run(
-        `INSERT INTO extensions (reservation_id, new_end_time, additional_fee)
-        VALUES (?, ?, ?)`,
-        [reservation_id, new_end_time, additional_fee],
-        function (err) {
-            if (err) return res.status(500).send({ message: "Error processing extension" });
-            res.status(201).send({ message: "Extension request created", extension_id: this.lastID });
-        }
-    );
-});
-
-
-// GET /extensions/:reservation_id: ดึงข้อมูลการต่อเวลาจาก ID การจอง
-app.get("/extensions/:reservation_id", (req, res) => {
-    const { reservation_id } = req.params;
-
-
-    db.get(`SELECT * FROM extensions WHERE reservation_id = ?`, [reservation_id], (err, row) => {
-        if (err) return res.status(500).send({ message: "Error fetching extension" });
-        if (!row) return res.status(404).send({ message: "Extension not found" });
-        res.send({ extension: row });
-    });
-});
-
 
 app.listen(5000,() => console.log("Server running on port 5000"));
