@@ -216,7 +216,7 @@ const ReservationScreen = ({ route, navigation }) => {
         )}
 
         {/* Total Fee Display */}
-        <Text style={styles.feeText}>Total Fee: à¸¿{calculateFee()}</Text>
+        <Text style={styles.feeText}>Total Fee: ฿{calculateFee()}</Text>
 
         {/* Continue to Payment Button */}
         <TouchableOpacity 

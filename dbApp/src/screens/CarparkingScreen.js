@@ -35,22 +35,26 @@ const CarparkingScreen = ({ route, navigation }) => {
     const loadParkingSlots = async () => {
       setIsLoading(true);
       try {
+        // ดึงข้อมูลจาก API จริง
         const slots = await fetchParkingSlots();
+        
+        // กรองข้อมูลตามชั้นที่เลือก
         const filteredSlots = slots.filter(slot => slot.floor === currentFloor);
         
+        // เรียงลำดับ slot ตามหมายเลข (A01, A02,... หรือ B01, B02,...)
         const sortedSlots = filteredSlots.sort((a, b) => {
-          const aLetter = a.slot_number.match(/[A-Za-z]+/)[0];
-          const aNumber = parseInt(a.slot_number.match(/\d+/)[0], 10);
-          const bLetter = b.slot_number.match(/[A-Za-z]+/)[0];
-          const bNumber = parseInt(b.slot_number.match(/\d+/)[0], 10);
-          
-          if (aLetter !== bLetter) {
-            return aLetter.localeCompare(bLetter);
-          }
-          return aNumber - bNumber;
+          const aNum = parseInt(a.slot_number.substring(1));
+          const bNum = parseInt(b.slot_number.substring(1));
+          return aNum - bNum;
         });
         
-        setParkingSlots(sortedSlots);
+        // ตั้งค่า status เป็น 'available' ทั้งหมด (ไม่มีการจอง)
+        const availableSlots = sortedSlots.map(slot => ({
+          ...slot,
+          status: 'available'
+        }));
+        
+        setParkingSlots(availableSlots);
       } catch (error) {
         console.error("Error loading parking slots:", error);
         Alert.alert('Error', 'Failed to load parking slots. Please try again.');
@@ -74,15 +78,6 @@ const CarparkingScreen = ({ route, navigation }) => {
   
     if (isLoading) return;
   
-    if (slot.status !== 'available') {
-      Alert.alert(
-        `Slot ${slot.slot_number}`,
-        'This slot is not available for reservation',
-        [{ text: 'OK' }]
-      );
-      return;
-    }
-  
     navigation.navigate('Reservation', { 
       slotId: slot.slot_id,
       username: username,
@@ -101,8 +96,7 @@ const CarparkingScreen = ({ route, navigation }) => {
             <ParkingSlot
               key={slot.slot_id}
               slotNumber={slot.slot_number}
-              isOccupied={slot.status !== 'available'}
-              isDisabled={isLoading}
+              isOccupied={false} // ตั้งค่าเป็น false ทั้งหมดเพราะไม่มีการจอง
               onPress={() => handleSlotPress(slot)}
             />
           ))}
