@@ -1,8 +1,28 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Image, ScrollView } from 'react-native';
+import React, {useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Image, ScrollView, ActivityIndicator } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
 const PaymentScreen = ({ route }) => {
-  const { username, parkingType, fee, floor, slotNumber, startTime, endTime, duration, bankReferenceNumber } = route.params || {};
+  const navigation = useNavigation();
+  const { username, parkingType, fee, floor, slotNumber, startTime, endTime, duration } = route.params || {};
+  
+  const [bankReferenceNumber, setBankReferenceNumber] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!bankReferenceNumber) {
+      setBankReferenceNumber(Math.floor(100000 + Math.random() * 900000).toString());
+    }
+  }, []);
+
+  const handleConfirmPayment = () => {
+    setIsLoading(true);
+    setTimeout(() => {
+      setIsLoading(false);
+      Alert.alert("Payment Confirmed");
+      navigation.navigate('Myparking');
+    }, 1500);
+  };
 
   const qrCodeUrl = `https://example.com/payment?user=${username}&ref=${bankReferenceNumber}&fee=${fee}`;
 
@@ -14,14 +34,19 @@ const PaymentScreen = ({ route }) => {
         <Text style={styles.summaryText}>Type: {parkingType.toUpperCase()}</Text>
         <Text style={styles.summaryText}>Duration: {duration} hour(s)</Text>
         <Text style={styles.summaryText}>Fee: {fee} THB</Text>
-        <Text style={styles.summaryText}>End Time: {new Date(endTime).toLocaleTimeString()}</Text>
         <Text style={styles.summaryText}>Start Time: {new Date(startTime).toLocaleTimeString()}</Text>
+        <Text style={styles.summaryText}>End Time: {new Date(endTime).toLocaleTimeString()}</Text>
         <Text style={styles.summaryText}>Bank Reference: {bankReferenceNumber}</Text>
       </View>
       
       <Image source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrCodeUrl)}` }} style={styles.qrCode} />
-      <TouchableOpacity style={styles.confirmButton} onPress={() => Alert.alert("Payment Confirmed")}>
-        <Text style={styles.buttonText}>Confirm Payment</Text>
+      
+      <TouchableOpacity style={styles.confirmButton} onPress={handleConfirmPayment} disabled={isLoading}>
+        {isLoading ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>Confirm Payment</Text>
+        )}
       </TouchableOpacity>
     </ScrollView>
   );
