@@ -16,8 +16,9 @@ const { width } = Dimensions.get('window');
 const MyParkingScreen = ({ route, navigation }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedReservation, setSelectedReservation] = useState(null);
+  const [showFine, setShowFine] = useState(false);
 
-  // ตรวจสอบและรับข้อมูลจาก route.params
+  // Destructure with proper validation
   const { 
     slotNumber, 
     floor, 
@@ -29,18 +30,51 @@ const MyParkingScreen = ({ route, navigation }) => {
     username 
   } = route.params || {};
 
-  // ใช้ useEffect เพื่อจัดการกรณีที่ไม่มีข้อมูลการจอง
+  // Updated useEffect with reservationId check
   useEffect(() => {
-    if (!route.params) {
-      // ใช้ setTimeout เพื่อเลื่อนการนำทางหลังจากการ render
+    if (!reservationId) {
       setTimeout(() => {
         navigation.navigate('Carparking', { username });
       }, 0);
     }
   }, [route.params, navigation, username]);
 
-  // ถ้าไม่มีข้อมูลการจอง
-  if (!route.params) {
+  // Reservation object with fallback values
+  const reservation = {
+    id: reservationId,
+    slotId: slotNumber || 'N/A',
+    type: parkingType || 'hourly',
+    startDate: new Date(startTime || Date.now()).toLocaleDateString(),
+    endDate: new Date(endTime || Date.now()).toLocaleDateString(),
+    startTime: new Date(startTime || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    endTime: new Date(endTime || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    fee: fee || 0,
+    floor: floor || 1
+  };
+
+  const calculateFine = () => {
+    return reservation.fee * 2;
+  };
+
+  const handleControlBlocker = () => {
+    setModalVisible(true);
+  };
+
+  const handleBackToCarparking = () => {
+    navigation.navigate('Carparking', { username });
+  };
+
+  const handleConfirmBlocker = () => {
+    setModalVisible(false);
+    Alert.alert(
+      "Blocker Controlled",
+      `Blocker for Slot ${reservation.slotId} has been activated`,
+      [{ text: "OK" }]
+    );
+  };
+
+  // Updated rendering condition
+  if (!reservationId) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.headerContainer}>
@@ -62,36 +96,6 @@ const MyParkingScreen = ({ route, navigation }) => {
     );
   }
 
-  // สร้างออบเจ็กต์ reservation
-  const reservation = {
-    id: reservationId,
-    slotId: slotNumber,
-    type: parkingType,
-    startDate: new Date(startTime).toLocaleDateString(),
-    endDate: new Date(endTime).toLocaleDateString(),
-    startTime: new Date(startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    endTime: new Date(endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    fee,
-    floor
-  };
-
-  const handleControlBlocker = () => {
-    setModalVisible(true);
-  };
-
-  const handleBackToCarparking = () => {
-    navigation.navigate('Carparking', { username });
-  };
-
-  const handleConfirmBlocker = () => {
-    setModalVisible(false);
-    Alert.alert(
-      "Blocker Controlled",
-      `Blocker for Slot ${reservation.slotId} has been activated`,
-      [{ text: "OK" }]
-    );
-  };
-
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.headerContainer}>
@@ -106,7 +110,9 @@ const MyParkingScreen = ({ route, navigation }) => {
         <View style={styles.cardHeader}>
           <MaterialIcons name="local-parking" size={24} color="#B19CD8" />
           <Text style={styles.slotId}>Slot {reservation.slotId} (Floor {reservation.floor})</Text>
-          <Text style={styles.reservationType}>{reservation.type.toUpperCase()}</Text>
+          <Text style={styles.reservationType}>
+            {reservation.type?.toUpperCase() || 'HOURLY'}
+          </Text>
         </View>
 
         <View style={styles.detailRow}>
@@ -136,6 +142,26 @@ const MyParkingScreen = ({ route, navigation }) => {
           <MaterialIcons name="lock" size={20} color="white" />
           <Text style={styles.controlButtonText}>Control Blocker</Text>
         </TouchableOpacity>
+
+        {/* เพิ่มปุ่มคำนวณค่าปรับ */}
+        <TouchableOpacity 
+          style={styles.fineButton}
+          onPress={() => setShowFine(!showFine)}
+        >
+          <MaterialIcons name="warning" size={20} color="white" />
+          <Text style={styles.fineButtonText}>
+            {showFine ? 'Hide Fine Calculation' : 'Show Fine Calculation'}
+          </Text>
+        </TouchableOpacity>
+
+        {/* แสดงผลการคำนวณค่าปรับ */}
+        {showFine && (
+          <View style={styles.fineContainer}>
+            <Text style={styles.fineText}>Original Fee: {reservation.fee} THB</Text>
+            <Text style={styles.fineText}>Fine (2x): {calculateFine()} THB</Text>
+            <Text style={styles.fineNote}>Note: This is a demo of fine calculation</Text>
+          </View>
+        )}
       </View>
 
       {/* Back Button */}
@@ -182,6 +208,7 @@ const MyParkingScreen = ({ route, navigation }) => {
     </SafeAreaView>
   );
 };
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -272,6 +299,39 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
+  },
+  fineButton: {
+    flexDirection: 'row',
+    backgroundColor: '#FF5252',
+    padding: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 15,
+  },
+  fineButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  fineContainer: {
+    marginTop: 15,
+    padding: 15,
+    backgroundColor: '#FFF3E0',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FFB74D',
+  },
+  fineText: {
+    fontSize: 14,
+    color: '#E65100',
+    marginBottom: 5,
+  },
+  fineNote: {
+    fontSize: 12,
+    color: '#FF9800',
+    fontStyle: 'italic',
   },
   backButton: {
     backgroundColor: '#B19CD8',

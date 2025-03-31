@@ -64,14 +64,6 @@ db.serialize(() => {
         FOREIGN KEY(reservation_id) REFERENCES reservations(reservation_id)
     )`);
 
-    db.run(`CREATE TABLE IF NOT EXISTS notifications (
-        notification_id INTEGER PRIMARY KEY AUTOINCREMENT,
-        reservation_id INTEGER NOT NULL,
-        message TEXT NOT NULL,
-        is_read BOOLEAN NOT NULL DEFAULT FALSE,
-        FOREIGN KEY(reservation_id) REFERENCES reservations(reservation_id)
-    )`);
-
     db.run(`CREATE TABLE IF NOT EXISTS barrier_control (
         control_id INTEGER PRIMARY KEY AUTOINCREMENT,
         reservation_id INTEGER NOT NULL,
@@ -563,109 +555,6 @@ app.put("/penalties/:penalty_id", (req, res) => {
     );
 });
 
-//Notifications
-// POST /notifications: ส่งการแจ้งเตือน
-app.post("/notifications", (req, res) => {
-    const { reservation_id, message, is_read } = req.body;
-    const created_at = new Date().toISOString();
-
-    // ตั้งค่า is_read เป็น false ถ้าไม่ได้ส่งมา
-    const readStatus = is_read !== undefined ? is_read : false;
-
-    // ตรวจสอบค่าที่จำเป็นต้องมี
-    if (!reservation_id || !message) {
-        return res.status(400).send({ message: "Missing required fields" });
-    }
-
-    // ตรวจสอบว่า reservation_id มีอยู่จริง
-    db.get(`SELECT reservation_id, reservation_end_time FROM reservations WHERE reservation_id = ?`, [reservation_id], (err, reservation) => {
-        if (err) {
-            console.error("Database Error:", err);
-            return res.status(500).send({ message: "Error checking reservation" });
-        }
-        if (!reservation) {
-            return res.status(404).send({ message: "Reservation not found" });
-        }
-
-        // ตรวจสอบเวลาจองที่เหลือ
-        const currentTime = new Date();
-        const reservationEndTime = new Date(reservation.reservation_end_time);
-        const timeDiff = reservationEndTime - currentTime;
-        
-        // ถ้าเหลือเวลา 5 นาที จะส่งการแจ้งเตือน
-        if (timeDiff <= 5 * 60 * 1000 && timeDiff > 0) {
-            message = "Your parking reservation will end in 5 minutes. Please prepare to leave.";
-        } else if (timeDiff <= 0) {
-            message = "Your parking reservation has ended. You will be charged a penalty for exceeding the reserved time.";
-        }
-
-        // บันทึกการแจ้งเตือน
-        db.run(
-            `INSERT INTO notifications (reservation_id, message, is_read) 
-            VALUES (?, ?, ?)`,
-            [reservation_id, message, readStatus],
-            function (err) {
-                if (err) {
-                    console.error("Database Error:", err);
-                    return res.status(500).send({ message: "Error sending notification" });
-                }
-                res.status(201).send({ message: "Notification sent successfully", notification_id: this.lastID });
-            }
-        );
-    });
-});
-
-
-// GET /notifications/:reservation_id: ดึงการแจ้งเตือนสำหรับการจอง
-app.get("/notifications/:reservation_id", (req, res) => {
-    const reservation_id = parseInt(req.params.reservation_id, 10);
-
-    if (isNaN(reservation_id)) {
-        return res.status(400).send({ message: "Invalid reservation ID" });
-    }
-
-    db.all(
-        `SELECT notification_id, reservation_id, message, is_read 
-         FROM notifications WHERE reservation_id = ?`,
-        [reservation_id],
-        (err, rows) => {
-            if (err) {
-                console.error("Database Error:", err);
-                return res.status(500).send({ message: "Error fetching notifications" });
-            }
-            res.send({ notifications: rows });
-        }
-    );
-});
-
-// PUT /notifications/:notification_id: อัพเดตสถานะการแจ้งเตือนเป็นอ่านแล้ว
-app.put("/notifications/:notification_id", (req, res) => {
-    const notification_id = parseInt(req.params.notification_id, 10);
-    const { is_read } = req.body;
-
-    if (isNaN(notification_id)) {
-        return res.status(400).send({ message: "Invalid notification ID" });
-    }
-
-    if (typeof is_read !== "boolean") {
-        return res.status(400).send({ message: "Invalid is_read value" });
-    }
-
-    db.run(
-        `UPDATE notifications SET is_read = ? WHERE notification_id = ?`,
-        [is_read, notification_id],
-        function (err) {
-            if (err) {
-                console.error("Database Error:", err);
-                return res.status(500).send({ message: "Error updating notification" });
-            }
-            if (this.changes === 0) {
-                return res.status(404).send({ message: "Notification not found" });
-            }
-            res.send({ message: "Notification updated successfully" });
-        }
-    );
-});
 
 //Barrier Control
 // POST /barrier-control: ควบคุมการพับที่กั้น
