@@ -4,7 +4,19 @@ import { useNavigation } from '@react-navigation/native';
 
 const PaymentScreen = ({ route }) => {
   const navigation = useNavigation();
-  const { username, parkingType, fee, floor, slotNumber, startTime, endTime, duration } = route.params || {};
+  const { 
+    username, 
+    parkingType, 
+    fee, 
+    floor, 
+    slotNumber, 
+    startTime, 
+    endTime, 
+    duration,
+    months,
+    startDate,
+    endDate
+  } = route.params || {};
   
   const [bankReferenceNumber, setBankReferenceNumber] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -14,6 +26,24 @@ const PaymentScreen = ({ route }) => {
       setBankReferenceNumber(Math.floor(100000 + Math.random() * 900000).toString());
     }
   }, []);
+
+  const formatTime = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    });
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    });
+  };
 
   const handleConfirmPayment = () => {
     setIsLoading(true);
@@ -51,10 +81,33 @@ const PaymentScreen = ({ route }) => {
       <View style={styles.summaryBox}>
         <Text style={styles.summaryText}>Slot: {slotNumber} (Floor {floor})</Text>
         <Text style={styles.summaryText}>Type: {parkingType.toUpperCase()}</Text>
-        <Text style={styles.summaryText}>Duration: {duration} hour(s)</Text>
-        <Text style={styles.summaryText}>Fee: {fee} THB</Text>
-        <Text style={styles.summaryText}>Start Time: {new Date(startTime).toLocaleTimeString()}</Text>
-        <Text style={styles.summaryText}>End Time: {new Date(endTime).toLocaleTimeString()}</Text>
+        
+        {parkingType === 'hourly' && (
+          <>
+            <Text style={styles.summaryText}>Duration: {duration} hour(s)</Text>
+            <Text style={styles.summaryText}>Start Time: {formatTime(startTime)}</Text>
+            <Text style={styles.summaryText}>End Time: {formatTime(endTime)}</Text>
+          </>
+        )}
+
+        {parkingType === 'daily' && (
+          <>
+            <Text style={styles.summaryText}>Start Date: {formatDate(startDate)}</Text>
+            <Text style={styles.summaryText}>Start Time: {formatTime(startTime)}</Text>
+            <Text style={styles.summaryText}>End Date: {formatDate(endDate)}</Text>
+            <Text style={styles.summaryText}>End Time: {formatTime(endTime)}</Text>
+          </>
+        )}
+
+        {parkingType === 'monthly' && (
+          <>
+            <Text style={styles.summaryText}>Duration: {months} month(s)</Text>
+            <Text style={styles.summaryText}>Start Date: {formatDate(startDate)}</Text>
+            <Text style={styles.summaryText}>End Date: {formatDate(endDate)}</Text>
+          </>
+        )}
+
+        <Text style={styles.summaryText}>Fee: {parkingType === 'monthly' ? '฿' : '฿'}{fee}</Text>
         <Text style={styles.summaryText}>Bank Reference: {bankReferenceNumber}</Text>
       </View>
       
