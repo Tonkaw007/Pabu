@@ -18,9 +18,7 @@ reservation_id (FK) – รหัสการจอง
 action – ของที่กั้นรถ (open, close)
 action_time – เวลาที่กั้นรถ
 */
-//แก้ชื่อปุ่ม Back
-
-import React, { useState, useEffect } from 'react';
+//import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -95,7 +93,7 @@ const MyParkingScreen = ({ navigation, route }) => {
           style={styles.backButton}
           onPress={() => navigation.navigate("Carparking")}
         >
-          <Text style={styles.backButtonText}>Carparking</Text>
+          <Text style={styles.backButtonText}>Back to Carparking</Text>
         </TouchableOpacity>
       </View>
     );
@@ -194,7 +192,7 @@ const MyParkingScreen = ({ navigation, route }) => {
         style={styles.backButton}
         onPress={() => navigation.navigate("Carparking", { username })}
       >
-        <Text style={styles.backButtonText}>Carparking</Text>
+        <Text style={styles.backButtonText}>Back to Carparking</Text>
       </TouchableOpacity>
 
       <Modal

@@ -11,9 +11,10 @@ const ReservationScreen = ({ route, navigation }) => {
   const [startTime, setStartTime] = useState(new Date());
   const [endTime, setEndTime] = useState(() => {
     const date = new Date();
-    date.setHours(date.getHours() + 24);
+    date.setHours(date.getHours() + 1); // Default to 1 hour duration
     return date;
   });
+  const [hours, setHours] = useState('1'); // Duration in hours
   
   // Date states
   const [startDate, setStartDate] = useState(new Date());
@@ -37,6 +38,18 @@ const ReservationScreen = ({ route, navigation }) => {
   const [showStartTimePicker, setShowStartTimePicker] = useState(false);
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
 
+  const handleHoursChange = (text) => {
+    if (text === '' || /^\d*$/.test(text)) {
+      setHours(text);
+      if (text) {
+        const hoursNum = parseInt(text);
+        const newEndTime = new Date(startTime);
+        newEndTime.setHours(newEndTime.getHours() + hoursNum);
+        setEndTime(newEndTime);
+      }
+    }
+  };
+
   const handleMonthsChange = (text) => {
     if (text === '' || /^\d*$/.test(text)) {
       setMonths(text);
@@ -49,13 +62,10 @@ const ReservationScreen = ({ route, navigation }) => {
     }
   };
 
-  const updateEndTime = (newStartDate, newStartTime) => {
-    const combinedStart = new Date(newStartDate);
-    combinedStart.setHours(newStartTime.getHours(), newStartTime.getMinutes());
-    
-    const newEndTime = new Date(combinedStart);
-    newEndTime.setHours(newEndTime.getHours() + 24);
-    
+  const updateEndTime = (newStartTime) => {
+    const hoursNum = hours ? parseInt(hours) : 1;
+    const newEndTime = new Date(newStartTime);
+    newEndTime.setHours(newEndTime.getHours() + hoursNum);
     setStartTime(newStartTime);
     setEndTime(newEndTime);
   };
@@ -64,8 +74,8 @@ const ReservationScreen = ({ route, navigation }) => {
     const rates = { hourly: 50, daily: 500, monthly: 1000 };
     switch(parkingType) {
       case 'hourly':
-        const hours = Math.ceil((endTime - startTime) / (1000 * 60 * 60));
-        return hours * rates.hourly;
+        const hoursNum = hours ? parseInt(hours) : 1;
+        return hoursNum * rates.hourly;
       case 'daily':
         const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
         return rates.daily * days;
@@ -85,6 +95,10 @@ const ReservationScreen = ({ route, navigation }) => {
   };
 
   const validateBeforePayment = () => {
+    if (parkingType === 'hourly' && (!hours || parseInt(hours) < 1)) {
+      Alert.alert('Invalid Duration', 'Please enter a valid number of hours');
+      return;
+    }
     if (parkingType === 'monthly' && (!months || parseInt(months) < 1)) {
       Alert.alert('Invalid Duration', 'Please enter a valid number of months');
       return;
@@ -97,6 +111,7 @@ const ReservationScreen = ({ route, navigation }) => {
       fee: calculateFee(),
       startTime: startTime.toISOString(),
       endTime: endTime.toISOString(),
+      hours: hours ? parseInt(hours) : 1,
       months: months ? parseInt(months) : 1,
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString()
@@ -146,6 +161,18 @@ const ReservationScreen = ({ route, navigation }) => {
             >
               <Text>{formatTime(startTime)}</Text>
             </TouchableOpacity>
+
+            <Text style={styles.label}>Duration (hours):</Text>
+            <TextInput
+              style={styles.input}
+              keyboardType="numeric"
+              value={hours}
+              onChangeText={handleHoursChange}
+              onBlur={() => {
+                if (!hours) setHours('1');
+                else if (parseInt(hours) < 1) setHours('1');
+              }}
+            />
 
             <Text style={styles.label}>End Time:</Text>
             <View style={styles.timeInput}>
@@ -235,7 +262,7 @@ const ReservationScreen = ({ route, navigation }) => {
             onChange={(event, selectedTime) => {
               setShowStartTimePicker(false);
               if (selectedTime) {
-                updateEndTime(startDate, selectedTime);
+                updateEndTime(selectedTime);
               }
             }}
           />
@@ -255,7 +282,7 @@ const ReservationScreen = ({ route, navigation }) => {
                 newEndDate.setMonth(newEndDate.getMonth() + monthsNum);
                 setStartDate(selectedDate);
                 setEndDate(newEndDate);
-                updateEndTime(selectedDate, startTime);
+                updateEndTime(startTime);
               }
             }}
           />
@@ -315,7 +342,8 @@ const styles = StyleSheet.create({
     borderColor: '#B19CD8',
     borderRadius: 8,
     padding: 12,
-    fontSize: 16
+    fontSize: 16,
+    marginBottom: 15
   },
   timeInput: {
     borderWidth: 1,

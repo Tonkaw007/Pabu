@@ -67,24 +67,25 @@ const CarparkingScreen = ({ route, navigation }) => {
   }, [currentFloor, username, navigation]);
 
   const handleSlotPress = (slot) => {
-    if (!username) {
-      Alert.alert(
-        "Error", 
-        "User information is missing. Please login again.",
-        [{ text: "OK", onPress: () => navigation.navigate('Login') }]
-      );
-      return;
-    }
-  
-    if (isLoading) return;
-  
-    navigation.navigate('Reservation', { 
-      slotId: slot.slot_id,
-      username: username,
-      slotNumber: slot.slot_number,
-      floor: slot.floor
-    });
-  };
+  if (!username) {
+    Alert.alert(
+      "Error", 
+      "User information is missing. Please login again.",
+      [{ text: "OK", onPress: () => navigation.navigate('Login') }]
+    );
+    return;
+  }
+
+  if (isLoading) return;
+
+  navigation.navigate('Reservation', { 
+    slotId: slot.slot_id,
+    username: username,
+    slotNumber: slot.slot_number,
+    floor: slot.floor,
+    slotDetails: slot // ส่งข้อมูล slot ทั้งหมดไปด้วย
+  });
+};
 
   const renderParkingSlots = () => {
     const rows = [];
