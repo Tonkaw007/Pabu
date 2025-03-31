@@ -2,21 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Image, ScrollView } from 'react-native';
 
 const PaymentScreen = ({ route }) => {
-  const { username, slotId, parkingType, fee, floor, slotNumber } = route.params || {};
-  const [bankReferenceNumber, setBankReferenceNumber] = useState('');
-
-  useEffect(() => {
-    const generateBankReference = () => {
-      const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-      let result = '';
-      for (let i = 0; i < 12; i++) {
-        result += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-      return result;
-    };
-    setBankReferenceNumber(generateBankReference());
-  }, []);
-
+  const { username, parkingType, fee, floor, slotNumber, startTime, endTime, duration, bankReferenceNumber } = route.params || {};
+  
   const qrCodeUrl = `https://example.com/payment?user=${username}&ref=${bankReferenceNumber}&fee=${fee}`;
 
   return (
@@ -27,6 +14,9 @@ const PaymentScreen = ({ route }) => {
         <Text style={styles.summaryText}>Type: {parkingType.toUpperCase()}</Text>
         <Text style={styles.summaryText}>Fee: {fee} THB</Text>
         <Text style={styles.summaryText}>Bank Reference: {bankReferenceNumber}</Text>
+        <Text style={styles.summaryText}>Start Time: {new Date(startTime).toLocaleTimeString()}</Text>
+        <Text style={styles.summaryText}>End Time: {new Date(endTime).toLocaleTimeString()}</Text>
+        <Text style={styles.summaryText}>Duration: {duration} hour(s)</Text>
       </View>
       <Image source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrCodeUrl)}` }} style={styles.qrCode} />
       <TouchableOpacity style={styles.confirmButton} onPress={() => Alert.alert("Payment Confirmed")}>
