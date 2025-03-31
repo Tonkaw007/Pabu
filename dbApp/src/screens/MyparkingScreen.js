@@ -1,6 +1,13 @@
 import React, { useState } from 'react';
 import { 
-  View, Text, StyleSheet, TouchableOpacity, Modal, SafeAreaView, Dimensions 
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
+  Modal, 
+  SafeAreaView, 
+  Dimensions,
+  Alert
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
@@ -10,23 +17,69 @@ const MyParkingScreen = ({ route, navigation }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedReservation, setSelectedReservation] = useState(null);
 
-  // Get reservation data passed from PaymentScreen
-  const { slotNumber, floor, parkingType, startTime, endTime, fee, reservationId } = route.params || {};
+  // ตรวจสอบและรับข้อมูลจาก route.params
+  const { 
+    slotNumber, 
+    floor, 
+    parkingType, 
+    startTime, 
+    endTime, 
+    fee, 
+    reservationId,
+    username 
+  } = route.params || {};
 
-  // Updated reservation object without random ID
+  // ถ้าไม่มีข้อมูลการจอง
+  if (!route.params) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.headerContainer}>
+          <Text style={styles.headerTitle}>My Parking</Text>
+        </View>
+        
+        <View style={styles.noReservationContainer}>
+          <MaterialIcons name="error-outline" size={50} color="#B19CD8" />
+          <Text style={styles.noReservationText}>No active reservation found</Text>
+          
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.navigate('Carparking', { username })}
+          >
+            <Text style={styles.backButtonText}>Back to Carparking</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // สร้างออบเจ็กต์ reservation
   const reservation = {
-    id: reservationId, // Using the reservation ID passed from PaymentScreen
+    id: reservationId,
     slotId: slotNumber,
     type: parkingType,
-    startDate: new Date(startTime).toISOString().split('T')[0], // Convert to YYYY-MM-DD
-    endDate: new Date(endTime).toISOString().split('T')[0],
+    startDate: new Date(startTime).toLocaleDateString(),
+    endDate: new Date(endTime).toLocaleDateString(),
+    startTime: new Date(startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    endTime: new Date(endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     fee,
     floor
   };
 
-  const handleControlBlocker = (reservation) => {
-    setSelectedReservation(reservation);
+  const handleControlBlocker = () => {
     setModalVisible(true);
+  };
+
+  const handleBackToCarparking = () => {
+    navigation.navigate('Carparking', { username });
+  };
+
+  const handleConfirmBlocker = () => {
+    setModalVisible(false);
+    Alert.alert(
+      "Blocker Controlled",
+      `Blocker for Slot ${reservation.slotId} has been activated`,
+      [{ text: "OK" }]
+    );
   };
 
   return (
@@ -53,14 +106,22 @@ const MyParkingScreen = ({ route, navigation }) => {
 
         <View style={styles.detailRow}>
           <MaterialIcons name="calendar-today" size={18} color="#666" />
-          <Text style={styles.detailText}>
-            {reservation.startDate} - {reservation.endDate}
-          </Text>
+          <Text style={styles.detailText}>Date: {reservation.startDate} - {reservation.endDate}</Text>
+        </View>
+
+        <View style={styles.detailRow}>
+          <MaterialIcons name="access-time" size={18} color="#666" />
+          <Text style={styles.detailText}>Time: {reservation.startTime} - {reservation.endTime}</Text>
+        </View>
+
+        <View style={styles.detailRow}>
+          <MaterialIcons name="attach-money" size={18} color="#666" />
+          <Text style={styles.detailText}>Fee: {reservation.fee} THB</Text>
         </View>
 
         <TouchableOpacity 
           style={styles.controlButton}
-          onPress={() => handleControlBlocker(reservation)}
+          onPress={handleControlBlocker}
         >
           <MaterialIcons name="lock" size={20} color="white" />
           <Text style={styles.controlButtonText}>Control Blocker</Text>
@@ -70,12 +131,12 @@ const MyParkingScreen = ({ route, navigation }) => {
       {/* Back Button */}
       <TouchableOpacity 
         style={styles.backButton}
-        onPress={() => navigation.navigate("Carparking")}
+        onPress={handleBackToCarparking}
       >
         <Text style={styles.backButtonText}>Back to Carparking</Text>
       </TouchableOpacity>
 
-      {/* Modal */}
+      {/* Blocker Control Modal */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -87,7 +148,7 @@ const MyParkingScreen = ({ route, navigation }) => {
             <MaterialIcons name="lock" size={60} color="#B19CD8" style={styles.modalIcon} />
             <Text style={styles.modalTitle}>Blocker Control</Text>
             <Text style={styles.modalText}>
-              You are controlling the blocker for Slot {selectedReservation?.slotId}
+              You are controlling the blocker for Slot {reservation.slotId}
             </Text>
 
             <View style={styles.modalButtonContainer}>
@@ -100,7 +161,7 @@ const MyParkingScreen = ({ route, navigation }) => {
               
               <TouchableOpacity 
                 style={[styles.modalButton, styles.confirmButton]}
-                onPress={() => setModalVisible(false)}
+                onPress={handleConfirmBlocker}
               >
                 <Text style={styles.confirmButtonText}>Confirm</Text>
               </TouchableOpacity>
@@ -134,17 +195,28 @@ const styles = StyleSheet.create({
   notificationIcon: {
     padding: 8,
   },
+  noReservationContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  noReservationText: {
+    fontSize: 18,
+    color: '#666',
+    marginVertical: 20,
+    textAlign: 'center',
+  },
   reservationCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 20,
-    marginTop: 20,
-    marginHorizontal: 20,
+    margin: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 6,
-    elevation: 6,
+    elevation: 3,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -197,9 +269,7 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 8,
     marginHorizontal: 20,
-    marginTop: 20,
     alignItems: 'center',
-    justifyContent: 'center',
   },
   backButtonText: {
     color: '#fff',
@@ -218,7 +288,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     width: width * 0.8,
     alignItems: 'center',
-    justifyContent: 'center',
   },
   modalIcon: {
     marginBottom: 20,
@@ -233,6 +302,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     marginBottom: 20,
+    textAlign: 'center',
   },
   modalButtonContainer: {
     flexDirection: 'row',
@@ -243,7 +313,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 12,
     borderRadius: 8,
-    margin: 5,
+    marginHorizontal: 5,
     alignItems: 'center',
   },
   cancelButton: {
@@ -254,7 +324,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   confirmButton: {
-    backgroundColor: '#5BC0DE',
+    backgroundColor: '#5CB85C',
   },
   confirmButtonText: {
     color: '#fff',
