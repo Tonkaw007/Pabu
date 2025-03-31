@@ -19,16 +19,27 @@ const PaymentScreen = ({ route }) => {
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
-      Alert.alert("Payment Confirmed");
-      navigation.navigate('Myparking', {
-        slotNumber,
-        floor,
-        parkingType,
-        startTime,
-        endTime,
-        fee,
-        reservationId: bankReferenceNumber // เพิ่ม reservationId ที่นี่
-      });
+      Alert.alert(
+        "Payment Confirmed",
+        "Your payment has been successfully processed",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              navigation.navigate('Myparking', {
+                slotNumber,
+                floor,
+                parkingType,
+                startTime,
+                endTime,
+                fee,
+                reservationId: bankReferenceNumber,
+                username
+              });
+            }
+          }
+        ]
+      );
     }, 1500);
   };
 

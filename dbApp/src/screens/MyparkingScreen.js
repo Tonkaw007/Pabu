@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -28,6 +28,16 @@ const MyParkingScreen = ({ route, navigation }) => {
     reservationId,
     username 
   } = route.params || {};
+
+  // ใช้ useEffect เพื่อจัดการกรณีที่ไม่มีข้อมูลการจอง
+  useEffect(() => {
+    if (!route.params) {
+      // ใช้ setTimeout เพื่อเลื่อนการนำทางหลังจากการ render
+      setTimeout(() => {
+        navigation.navigate('Carparking', { username });
+      }, 0);
+    }
+  }, [route.params, navigation, username]);
 
   // ถ้าไม่มีข้อมูลการจอง
   if (!route.params) {
@@ -172,7 +182,6 @@ const MyParkingScreen = ({ route, navigation }) => {
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
