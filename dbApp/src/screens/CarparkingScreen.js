@@ -35,20 +35,15 @@ const CarparkingScreen = ({ route, navigation }) => {
     const loadParkingSlots = async () => {
       setIsLoading(true);
       try {
-        // ดึงข้อมูลจาก API จริง
         const slots = await fetchParkingSlots();
-        
-        // กรองข้อมูลตามชั้นที่เลือก
         const filteredSlots = slots.filter(slot => slot.floor === currentFloor);
         
-        // เรียงลำดับ slot ตามหมายเลข (A01, A02,... หรือ B01, B02,...)
         const sortedSlots = filteredSlots.sort((a, b) => {
           const aNum = parseInt(a.slot_number.substring(1));
           const bNum = parseInt(b.slot_number.substring(1));
           return aNum - bNum;
         });
         
-        // ตั้งค่า status เป็น 'available' ทั้งหมด (ไม่มีการจอง)
         const availableSlots = sortedSlots.map(slot => ({
           ...slot,
           status: 'available'
@@ -76,14 +71,12 @@ const CarparkingScreen = ({ route, navigation }) => {
       return;
     }
 
-    if (isLoading) return;
-
     navigation.navigate('Reservation', { 
       slotId: slot.slot_id,
       username: username,
       slotNumber: slot.slot_number,
       floor: slot.floor,
-      slotDetails: slot // ส่งข้อมูล slot ทั้งหมดไปด้วย
+      slotDetails: slot
     });
   };
 
@@ -97,7 +90,7 @@ const CarparkingScreen = ({ route, navigation }) => {
             <ParkingSlot
               key={slot.slot_id}
               slotNumber={slot.slot_number}
-              isOccupied={false} // ตั้งค่าเป็น false ทั้งหมดเพราะไม่มีการจอง
+              isOccupied={false}
               onPress={() => handleSlotPress(slot)}
             />
           ))}
@@ -170,7 +163,7 @@ const CarparkingScreen = ({ route, navigation }) => {
 
       <View style={styles.buttonContainer}>
         <CustomButton 
-          title={isLoading ? "Processing..." : "My Reservations"} 
+          title={isLoading ? "Processing..." : "My Parking"} 
           onPress={() => navigation.navigate('Myparking', { username })}
           backgroundColor="#B19CD8"
           textColor="white"

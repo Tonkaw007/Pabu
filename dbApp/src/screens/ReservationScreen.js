@@ -4,37 +4,35 @@ import DropDownPicker from 'react-native-dropdown-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 const ReservationScreen = ({ route, navigation }) => {
-  const { slotId, username } = route.params;
+  const { 
+    slotId, 
+    username, 
+    slotNumber, 
+    floor,
+    slotDetails 
+  } = route.params;
+
   const [parkingType, setParkingType] = useState('hourly');
-  
-  // Time states
   const [startTime, setStartTime] = useState(new Date());
   const [endTime, setEndTime] = useState(() => {
     const date = new Date();
-    date.setHours(date.getHours() + 1); // Default to 1 hour duration
+    date.setHours(date.getHours() + 1);
     return date;
   });
-  const [hours, setHours] = useState('1'); // Duration in hours
-  
-  // Date states
+  const [hours, setHours] = useState('1');
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(() => {
     const date = new Date();
     date.setMonth(date.getMonth() + 1);
     return date;
   });
-
   const [months, setMonths] = useState('1');
-
-  // Dropdown states
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState([
     {label: 'Hourly', value: 'hourly'},
     {label: 'Daily', value: 'daily'},
     {label: 'Monthly', value: 'monthly'}
   ]);
-
-  // Picker visibility states
   const [showStartTimePicker, setShowStartTimePicker] = useState(false);
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
 
@@ -103,14 +101,12 @@ const ReservationScreen = ({ route, navigation }) => {
       Alert.alert('Invalid Duration', 'Please enter a valid number of months');
       return;
     }
-  
-    // สร้าง Bank Reference Number
-    const bankReferenceNumber = generateBankReference();
-  
+
     navigation.navigate('Payment', {
       username,
       slotId,
-      slotNumber: Number(slotId), // ตรวจสอบให้แน่ใจว่าเป็นตัวเลข
+      slotNumber,
+      floor,
       parkingType,
       fee: calculateFee(),
       startTime: startTime.toISOString(),
@@ -119,20 +115,9 @@ const ReservationScreen = ({ route, navigation }) => {
       months: months ? Number(months) : 1,
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
-      bankReferenceNumber // ส่งไปยัง PaymentScreen
+      slotDetails
     });
   };
-  
-  // ฟังก์ชันสร้าง Bank Reference Number
-  const generateBankReference = () => {
-    const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    let result = '';
-    for (let i = 0; i < 12; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
-  };
-  
 
   return (
     <KeyboardAvoidingView 
@@ -144,9 +129,10 @@ const ReservationScreen = ({ route, navigation }) => {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.header}>Reservation for {slotId}</Text>
+        <Text style={styles.header}>
+          Reservation for {slotNumber} (Floor {floor})
+        </Text>
         
-        {/* Parking Type Dropdown */}
         <View style={{ zIndex: 5000 }}>
           <Text style={styles.label}>Parking Type:</Text>
           <DropDownPicker
@@ -167,7 +153,6 @@ const ReservationScreen = ({ route, navigation }) => {
           />
         </View>
 
-        {/* Hourly Parking Controls */}
         {parkingType === 'hourly' && (
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Start Time:</Text>
@@ -197,7 +182,6 @@ const ReservationScreen = ({ route, navigation }) => {
           </View>
         )}
 
-        {/* Daily Parking Controls */}
         {parkingType === 'daily' && (
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Start Date:</Text>
@@ -228,7 +212,6 @@ const ReservationScreen = ({ route, navigation }) => {
           </View>
         )}
 
-        {/* Monthly Parking Controls */}
         {parkingType === 'monthly' && (
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Start Date:</Text>
@@ -258,10 +241,8 @@ const ReservationScreen = ({ route, navigation }) => {
           </View>
         )}
 
-        {/* Total Fee Display */}
         <Text style={styles.feeText}>Total Fee: ฿{calculateFee()}</Text>
 
-        {/* Continue to Payment Button */}
         <TouchableOpacity 
           style={styles.button}
           onPress={validateBeforePayment}
@@ -269,7 +250,6 @@ const ReservationScreen = ({ route, navigation }) => {
           <Text style={styles.buttonText}>Continue to Payment</Text>
         </TouchableOpacity>
 
-        {/* Date Time Pickers */}
         {showStartTimePicker && (
           <DateTimePicker
             value={startTime}
@@ -297,12 +277,10 @@ const ReservationScreen = ({ route, navigation }) => {
             }}
           />
         )}
-
       </ScrollView>
     </KeyboardAvoidingView>
   );
 };
-
 
 const styles = StyleSheet.create({
   container: {
@@ -317,7 +295,8 @@ const styles = StyleSheet.create({
     fontSize: 24, 
     fontWeight: 'bold', 
     marginBottom: 20,
-    color: '#333'
+    color: '#333',
+    textAlign: 'center'
   },
   dropdown: {
     backgroundColor: '#f0f0f0',
