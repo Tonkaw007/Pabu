@@ -3,12 +3,17 @@ import {
   View, 
   Text, 
   StyleSheet, 
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-  Image
+  TouchableOpacity, 
+  ActivityIndicator, 
+  Alert, 
+  Image,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform 
 } from 'react-native';
 import { createReservation, createPayment } from '../services/api'; // Import your API methods
+import DropDownPicker from 'react-native-dropdown-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const PaymentScreen = ({ route, navigation }) => {
   if (!route.params) {
@@ -17,22 +22,30 @@ const PaymentScreen = ({ route, navigation }) => {
     return null;
   }
 
+  // Extract params from the route
   const { 
-    username = '', 
-    slotId = '', 
-    parkingType = 'hourly', 
-    fee = 0, 
-    floor = '', 
-    slotNumber = '',
-    duration = 1,           
-    startTime = new Date(), 
-    endTime = new Date(),   
-    startDate = new Date(), 
-    endDate = new Date(),   
-    months = 1              
+    username, 
+    slotId, 
+    parkingType, 
+    fee, 
+    floor, 
+    slotNumber,
+    duration,           // duration in hours for hourly parking
+    startTime, 
+    endTime,   
+    startDate, 
+    endDate,   
+    months             // duration in months for monthly parking
   } = route.params;
 
   const [isProcessing, setIsProcessing] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [items] = useState([
+    { label: 'Hourly', value: 'hourly' },
+    { label: 'Daily', value: 'daily' },
+    { label: 'Monthly', value: 'monthly' }
+  ]);
+  const [showStartTimePicker, setShowStartTimePicker] = useState(false);
 
   const generateBankReference = () => {
     const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -44,7 +57,7 @@ const PaymentScreen = ({ route, navigation }) => {
   };
 
   const [bankReference] = useState(generateBankReference());
-  
+
   const demoQRCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
     `ParkingReservation:${username}:${bankReference}:${slotId}:${fee}THB`
   )}`;
@@ -60,96 +73,112 @@ const PaymentScreen = ({ route, navigation }) => {
     try {
       // 1. Create Reservation
       const reservation = await createReservation(
-        username, slotId, startTime, endTime, parkingType, fee, 'pending'
+        username, 
+        slotId, 
+        startTime, 
+        endTime, 
+        parkingType, 
+        fee, 
+        'pending'
       );
 
       // 2. Create Payment
-      const payment = await createPayment(
-        reservation.id, null, fee, 'pending', bankReference
-      );
+      const payment = await createPayment(reservation.id, null, fee, 'pending', bankReference);
 
-      // Handle success and navigate
-      setIsProcessing(false);
-      
+      // Set reservation details to pass to the next screen
       const reservationDetails = {
         id: reservation.id,
         slotId: slotId,
-        slotNumber: slotNumber,
+        slotNumber: slotNumber, 
         floor: floor,
         type: parkingType,
         fee: fee,
         bankReference: bankReference,
         qrCodeUrl: demoQRCodeUrl,
-        duration: parkingType === 'hourly' ? duration : undefined,
-        months: parkingType === 'monthly' ? months : undefined,
+        duration: parkingType === 'hourly' ? duration : undefined, 
+        months: parkingType === 'monthly' ? months : undefined,  
         startTime: startTime,
         endTime: endTime,
         startDate: startDate,
         endDate: endDate
       };
-      
+
+      setIsProcessing(false);
       navigation.replace("Myparking", { 
         username: username,
         paymentSuccess: true,
         reservationDetails: reservationDetails
       });
+
     } catch (error) {
       setIsProcessing(false);
       Alert.alert('Error', error.message || 'Something went wrong, please try again.');
     }
   };
 
+  const formatTime = (date) => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const formatDate = (date) => date.toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' });
+
   return (
-    <View style={styles.container}>
-      {isProcessing ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#B19CD8" />
-          <Text style={styles.loadingText}>Processing your payment...</Text>
-        </View>
-      ) : (
-        <>
-          <Text style={styles.header}>Payment Confirmation</Text>
-          
-          <View style={styles.summaryBox}>
-            <Text style={styles.summaryText}>Slot: {slotNumber} (Floor {floor})</Text>
-            <Text style={styles.summaryText}>Type: {parkingType.toUpperCase()}</Text>
-            
-            {parkingType === 'hourly' && (
-              <>
-                <Text style={styles.summaryText}>Duration: {duration} hour(s)</Text>
-                <Text style={styles.summaryText}>Start Time: {new Date(startTime).toLocaleTimeString()}</Text>
-                <Text style={styles.summaryText}>End Time: {new Date(endTime).toLocaleTimeString()}</Text>
-              </>
-            )}
-            
-            {parkingType === 'daily' && (
-              <>
-                <Text style={styles.summaryText}>Start Date: {new Date(startDate).toLocaleDateString()}</Text>
-                <Text style={styles.summaryText}>End Date: {new Date(endDate).toLocaleDateString()}</Text>
-              </>
-            )}
-            
-            {parkingType === 'monthly' && (
-              <>
-                <Text style={styles.summaryText}>Duration: {months} month(s)</Text>
-                <Text style={styles.summaryText}>Start Date: {new Date(startDate).toLocaleDateString()}</Text>
-                <Text style={styles.summaryText}>End Date: {new Date(endDate).toLocaleDateString()}</Text>
-              </>
-            )}
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={{ flex: 1 }}
+    >
+      <ScrollView 
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        {isProcessing ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#B19CD8" />
+            <Text style={styles.loadingText}>Processing your payment...</Text>
           </View>
+        ) : (
+          <>
+            <Text style={styles.header}>Payment Confirmation</Text>
 
-          <Image source={{ uri: demoQRCodeUrl }} style={styles.qrCode} />
+            <View style={styles.summaryBox}>
+              <Text style={styles.summaryText}>Slot: {slotNumber} (Floor {floor})</Text>
+              <Text style={styles.summaryText}>Type: {parkingType.toUpperCase()}</Text>
 
-          <TouchableOpacity 
-            style={styles.confirmButton} 
-            onPress={handleConfirmPayment}
-            disabled={isProcessing}
-          >
-            <Text style={styles.buttonText}>Confirm Payment</Text>
-          </TouchableOpacity>
-        </>
-      )}
-    </View>
+              {parkingType === 'hourly' && (
+                <>
+                  <Text style={styles.summaryText}>Duration: {duration} hour(s)</Text>
+                  <Text style={styles.summaryText}>Start Time: {formatTime(new Date(startTime))}</Text>
+                  <Text style={styles.summaryText}>End Time: {formatTime(new Date(endTime))}</Text>
+                </>
+              )}
+
+              {parkingType === 'daily' && (
+                <>
+                  <Text style={styles.summaryText}>Start Date: {formatDate(new Date(startDate))}</Text>
+                  <Text style={styles.summaryText}>End Date: {formatDate(new Date(endDate))}</Text>
+                </>
+              )}
+
+              {parkingType === 'monthly' && (
+                <>
+                  <Text style={styles.summaryText}>Duration: {months} month(s)</Text>
+                  <Text style={styles.summaryText}>Start Date: {formatDate(new Date(startDate))}</Text>
+                  <Text style={styles.summaryText}>End Date: {formatDate(new Date(endDate))}</Text>
+                </>
+              )}
+            </View>
+
+            <Image source={{ uri: demoQRCodeUrl }} style={styles.qrCode} />
+
+            <TouchableOpacity 
+              style={styles.confirmButton} 
+              onPress={handleConfirmPayment}
+              disabled={isProcessing}
+            >
+              <Text style={styles.buttonText}>Confirm Payment</Text>
+            </TouchableOpacity>
+          </>
+        )}
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -157,9 +186,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8f9fa',
-    alignItems: 'center',
-    justifyContent: 'center',
     padding: 20,
+  },
+  scrollContent: {
+    paddingBottom: 40,
   },
   header: {
     fontSize: 24,
@@ -190,7 +220,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#B19CD8',
     padding: 15,
     borderRadius: 8,
-    width: '100%',
     alignItems: 'center',
   },
   buttonText: {
@@ -205,7 +234,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-  }
+  },
 });
 
 export default PaymentScreen;
