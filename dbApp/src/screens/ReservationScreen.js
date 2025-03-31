@@ -103,20 +103,36 @@ const ReservationScreen = ({ route, navigation }) => {
       Alert.alert('Invalid Duration', 'Please enter a valid number of months');
       return;
     }
-
+  
+    // สร้าง Bank Reference Number
+    const bankReferenceNumber = generateBankReference();
+  
     navigation.navigate('Payment', {
       username,
       slotId,
+      slotNumber: Number(slotId), // ตรวจสอบให้แน่ใจว่าเป็นตัวเลข
       parkingType,
       fee: calculateFee(),
       startTime: startTime.toISOString(),
       endTime: endTime.toISOString(),
-      hours: hours ? parseInt(hours) : 1,
-      months: months ? parseInt(months) : 1,
+      duration: hours ? Number(hours) : 1,
+      months: months ? Number(months) : 1,
       startDate: startDate.toISOString(),
-      endDate: endDate.toISOString()
+      endDate: endDate.toISOString(),
+      bankReferenceNumber // ส่งไปยัง PaymentScreen
     });
   };
+  
+  // ฟังก์ชันสร้าง Bank Reference Number
+  const generateBankReference = () => {
+    const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let result = '';
+    for (let i = 0; i < 12; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  };
+  
 
   return (
     <KeyboardAvoidingView 
