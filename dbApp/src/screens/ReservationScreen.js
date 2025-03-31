@@ -1,33 +1,30 @@
-/*3. ตาราง reservations (การจองที่จอดรถ) ยังไม่ได้ตั้งราคาtotal_price – ราคาการจอง
-reservation_id (PK) – รหัสการจอง
-user_id (FK) – ผู้จอง
-slot_id (FK) – รหัสที่จอดรถ
-slot_number – หมายเลขที่จอด
-floor – ชั้น
-start_time – วัน-เวลาที่เริ่มจอด
-end_time – วัน-เวลาที่ออกจากที่จอด
-booking_type – ประเภทการจอง (hourly, daily, monthly)
-total_price – ราคาการจอง ยังไม่ได้ตั้งราคา 
-status – สถานะ (pending, confirmed, completed)
-created_at – วัน-เวลาที่จอง
-เราตั้งราคาไว้แล้ว
-รายชั่วโมง 50 บาท รายวัน 150 บาท รายเดือน 1000 บาท ดูจากที่บรรทัด 40 ชื่อ calculateFee*/
-
-//ควรมีย้อนกลับไปหน้า Carpa อีกรอบ แบบว่าเลือกพท้นที่อื่น
-
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
-
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Alert, TextInput } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 const ReservationScreen = ({ route, navigation }) => {
-  const { slotId, username, slotNumber, floor } = route.params;
-  const [parkingType, setParkingType] = useState('hourly'); // ไม่มีค่าเริ่มต้นพิเศษสำหรับ A01
-  const [startTime, setStartTime] = useState(new Date());
-  const [endTime, setEndTime] = useState(new Date());
-  const [months, setMonths] = useState(1); // เริ่มต้นที่ 1 เดือน
+  const { slotId, username } = route.params;
+  const [parkingType, setParkingType] = useState('hourly');
   
+  // Time states
+  const [startTime, setStartTime] = useState(new Date());
+  const [endTime, setEndTime] = useState(() => {
+    const date = new Date();
+    date.setHours(date.getHours() + 24);
+    return date;
+  });
+  
+  // Date states
+  const [startDate, setStartDate] = useState(new Date());
+  const [endDate, setEndDate] = useState(() => {
+    const date = new Date();
+    date.setMonth(date.getMonth() + 1);
+    return date;
+  });
+
+  const [months, setMonths] = useState('1');
+
   // Dropdown states
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState([
@@ -36,21 +33,74 @@ const ReservationScreen = ({ route, navigation }) => {
     {label: 'Monthly', value: 'monthly'}
   ]);
 
-  // DateTimePicker states
-  const [showStartPicker, setShowStartPicker] = useState(false);
-  const [showEndPicker, setShowEndPicker] = useState(false);
+  // Picker visibility states
+  const [showStartTimePicker, setShowStartTimePicker] = useState(false);
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+
+  const handleMonthsChange = (text) => {
+    if (text === '' || /^\d*$/.test(text)) {
+      setMonths(text);
+      if (text) {
+        const monthsNum = parseInt(text);
+        const newEndDate = new Date(startDate);
+        newEndDate.setMonth(newEndDate.getMonth() + monthsNum);
+        setEndDate(newEndDate);
+      }
+    }
+  };
+
+  const updateEndTime = (newStartDate, newStartTime) => {
+    const combinedStart = new Date(newStartDate);
+    combinedStart.setHours(newStartTime.getHours(), newStartTime.getMinutes());
+    
+    const newEndTime = new Date(combinedStart);
+    newEndTime.setHours(newEndTime.getHours() + 24);
+    
+    setStartTime(newStartTime);
+    setEndTime(newEndTime);
+  };
 
   const calculateFee = () => {
     const rates = { hourly: 50, daily: 500, monthly: 1000 };
-    if (parkingType === 'hourly') {
-      const hours = Math.ceil((endTime - startTime) / (1000 * 60 * 60));
-      return hours * rates.hourly;
+    switch(parkingType) {
+      case 'hourly':
+        const hours = Math.ceil((endTime - startTime) / (1000 * 60 * 60));
+        return hours * rates.hourly;
+      case 'daily':
+        const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+        return rates.daily * days;
+      case 'monthly':
+        return rates.monthly * (months ? parseInt(months) : 1);
+      default:
+        return 0;
     }
-    return rates[parkingType] * (parkingType === 'monthly' ? months : 1);
   };
 
   const formatTime = (date) => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const formatDate = (date) => {
+    return date.toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' });
+  };
+
+  const validateBeforePayment = () => {
+    if (parkingType === 'monthly' && (!months || parseInt(months) < 1)) {
+      Alert.alert('Invalid Duration', 'Please enter a valid number of months');
+      return;
+    }
+
+    navigation.navigate('Payment', {
+      username,
+      slotId,
+      parkingType,
+      fee: calculateFee(),
+      startTime: startTime.toISOString(),
+      endTime: endTime.toISOString(),
+      months: months ? parseInt(months) : 1,
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString()
+    });
   };
 
   return (
@@ -63,9 +113,9 @@ const ReservationScreen = ({ route, navigation }) => {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.header}>Reservation for {slotNumber} (Floor {floor})</Text>
+        <Text style={styles.header}>Reservation for {slotId}</Text>
         
-        {/* Dropdown Container */}
+        {/* Parking Type Dropdown */}
         <View style={{ zIndex: 5000 }}>
           <Text style={styles.label}>Parking Type:</Text>
           <DropDownPicker
@@ -86,77 +136,127 @@ const ReservationScreen = ({ route, navigation }) => {
           />
         </View>
 
+        {/* Hourly Parking Controls */}
         {parkingType === 'hourly' && (
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Start Time:</Text>
             <TouchableOpacity 
               style={styles.timeInput} 
-              onPress={() => setShowStartPicker(true)}
+              onPress={() => setShowStartTimePicker(true)}
             >
               <Text>{formatTime(startTime)}</Text>
             </TouchableOpacity>
 
             <Text style={styles.label}>End Time:</Text>
-            <TouchableOpacity 
-              style={styles.timeInput} 
-              onPress={() => setShowEndPicker(true)}
-            >
+            <View style={styles.timeInput}>
               <Text>{formatTime(endTime)}</Text>
-            </TouchableOpacity>
+            </View>
           </View>
         )}
 
+        {/* Daily Parking Controls */}
+        {parkingType === 'daily' && (
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Start Date:</Text>
+            <TouchableOpacity 
+              style={styles.timeInput} 
+              onPress={() => setShowStartDatePicker(true)}
+            >
+              <Text>{formatDate(startDate)}</Text>
+            </TouchableOpacity>
+
+            <Text style={styles.label}>Start Time:</Text>
+            <TouchableOpacity 
+              style={styles.timeInput} 
+              onPress={() => setShowStartTimePicker(true)}
+            >
+              <Text>{formatTime(startTime)}</Text>
+            </TouchableOpacity>
+
+            <Text style={styles.label}>End Date:</Text>
+            <View style={styles.timeInput}>
+              <Text>{formatDate(endDate)}</Text>
+            </View>
+
+            <Text style={styles.label}>End Time:</Text>
+            <View style={styles.timeInput}>
+              <Text>{formatTime(endTime)}</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Monthly Parking Controls */}
         {parkingType === 'monthly' && (
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Months:</Text>
+            <Text style={styles.label}>Start Date:</Text>
+            <TouchableOpacity 
+              style={styles.timeInput} 
+              onPress={() => setShowStartDatePicker(true)}
+            >
+              <Text>{formatDate(startDate)}</Text>
+            </TouchableOpacity>
+
+            <Text style={styles.label}>Duration (months):</Text>
             <TextInput
               style={styles.input}
               keyboardType="numeric"
-              value={String(months)}
-              onChangeText={(text) => setMonths(Math.max(1, parseInt(text) || 1))} // อย่างน้อย 1 เดือน
+              value={months}
+              onChangeText={handleMonthsChange}
+              onBlur={() => {
+                if (!months) setMonths('1');
+                else if (parseInt(months) < 1) setMonths('1');
+              }}
             />
+
+            <Text style={styles.label}>End Date:</Text>
+            <View style={styles.timeInput}>
+              <Text>{formatDate(endDate)}</Text>
+            </View>
           </View>
         )}
 
-        <Text style={styles.feeText}>Total Fee: ฿{calculateFee()}</Text>
+        {/* Total Fee Display */}
+        <Text style={styles.feeText}>Total Fee: à¸¿{calculateFee()}</Text>
 
+        {/* Continue to Payment Button */}
         <TouchableOpacity 
           style={styles.button}
-          onPress={() => navigation.navigate('Payment', {
-            username,
-            slotId,
-            slotNumber,
-            floor,
-            parkingType,
-            fee: calculateFee(),
-            startTime: startTime.toISOString(),
-            endTime: endTime.toISOString(),
-            months
-          })}
+          onPress={validateBeforePayment}
         >
           <Text style={styles.buttonText}>Continue to Payment</Text>
         </TouchableOpacity>
 
-        {showStartPicker && (
+        {/* Date Time Pickers */}
+        {showStartTimePicker && (
           <DateTimePicker
             value={startTime}
             mode="time"
             display="default"
-            onChange={(event, selectedDate) => {
-              setShowStartPicker(false);
-              if (selectedDate) setStartTime(selectedDate);
+            onChange={(event, selectedTime) => {
+              setShowStartTimePicker(false);
+              if (selectedTime) {
+                updateEndTime(startDate, selectedTime);
+              }
             }}
           />
         )}
 
-        {showEndPicker && (
+        {showStartDatePicker && (
           <DateTimePicker
-            value={endTime}
-            mode="time"
+            value={startDate}
+            mode="date"
             display="default"
+            minimumDate={new Date()}
             onChange={(event, selectedDate) => {
-              setShowEndPicker(false);
-              if (selectedDate) setEndTime(selectedDate);
+              setShowStartDatePicker(false);
+              if (selectedDate) {
+                const monthsNum = months ? parseInt(months) : 1;
+                const newEndDate = new Date(selectedDate);
+                newEndDate.setMonth(newEndDate.getMonth() + monthsNum);
+                setStartDate(selectedDate);
+                setEndDate(newEndDate);
+                updateEndTime(selectedDate, startTime);
+              }
             }}
           />
         )}
