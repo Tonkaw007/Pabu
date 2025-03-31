@@ -1,179 +1,81 @@
+import React, { useState, useEffect } from 'react';
 import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  FlatList, 
-  TouchableOpacity, 
-  Modal, 
-  Dimensions, 
-  SafeAreaView,
-  ActivityIndicator,
-  Alert
+  View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, 
+  Dimensions, SafeAreaView 
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
 
-const MyParkingScreen = ({ navigation, route }) => {
-  const { username, paymentSuccess, reservationDetails } = route.params || {};
+const MyParkingScreen = ({ route, navigation }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedReservation, setSelectedReservation] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [reservations, setReservations] = useState([]);
 
-  useEffect(() => {
-    if (paymentSuccess && reservationDetails) {
-      Alert.alert(
-        "Reservation Successful",
-        `Your reservation for Slot ${reservationDetails.slotNumber} has been confirmed`,
-        [{ text: "OK" }]
-      );
-      
-      setReservations([{
-        id: reservationDetails.id,
-        slotId: reservationDetails.slotId,
-        slotNumber: reservationDetails.slotNumber,
-        floor: reservationDetails.floor,
-        type: reservationDetails.type,
-        startDate: new Date().toLocaleDateString(),
-        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString(),
-        status: 'confirmed',
-        fee: reservationDetails.fee
-      }]);
-    }
+  // รับข้อมูลการจองจาก PaymentScreen ที่ผ่านมา
+  const { slotNumber, floor, parkingType, startTime, endTime, fee } = route.params || {};
 
-    setIsLoading(false);
-  }, []);
+  const reservation = {
+    id: `RES-${Math.floor(1000 + Math.random() * 9000)}`, // สุ่ม ID
+    slotId: slotNumber,
+    type: parkingType,
+    startDate: new Date(startTime).toISOString().split('T')[0], // แปลงเป็น YYYY-MM-DD
+    endDate: new Date(endTime).toISOString().split('T')[0],
+    fee,
+    floor
+  };
 
   const handleControlBlocker = (reservation) => {
     setSelectedReservation(reservation);
     setModalVisible(true);
   };
 
-  const handleConfirmControl = () => {
-    setIsLoading(true);
-    
-    setTimeout(() => {
-      setIsLoading(false);
-      setModalVisible(false);
-      Alert.alert(
-        "Success",
-        `Barrier for Slot ${selectedReservation?.slotNumber} has been opened`,
-        [{ text: "OK" }]
-      );
-    }, 1500);
-  };
-
-  if (!username) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>User information is missing</Text>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => navigation.navigate("Carparking")}
-        >
-          <Text style={styles.backButtonText}>Back to Carparking</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.headerContainer}>
         <Text style={styles.headerTitle}>My Parking</Text>
-        <Text style={styles.usernameText}>{username}</Text>
+        <TouchableOpacity style={styles.notificationIcon}>
+          <MaterialIcons name="notifications" size={24} color="#B19CD8" />
+        </TouchableOpacity>
       </View>
 
-      {isLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#B19CD8" />
+      {/* แสดงการจองที่ได้รับจาก PaymentScreen */}
+      <View style={styles.reservationCard}>
+        <View style={styles.cardHeader}>
+          <MaterialIcons name="local-parking" size={24} color="#B19CD8" />
+          <Text style={styles.slotId}>Slot {reservation.slotId} (Floor {reservation.floor})</Text>
+          <Text style={styles.reservationType}>{reservation.type.toUpperCase()}</Text>
         </View>
-      ) : (
-        <FlatList
-          data={reservations}
-          contentContainerStyle={reservations.length === 0 ? styles.emptyListContent : styles.listContent}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <MaterialIcons name="local-parking" size={50} color="#B19CD8" />
-              <Text style={styles.emptyText}>No active reservations</Text>
-              <TouchableOpacity 
-                style={styles.findParkingButton}
-                onPress={() => navigation.navigate("Carparking", { username })}
-              >
-                <Text style={styles.findParkingButtonText}>Find Parking</Text>
-              </TouchableOpacity>
-            </View>
-          }
-          renderItem={({ item }) => (
-            <View style={styles.reservationCard}>
-              <View style={styles.cardHeader}>
-                <MaterialIcons name="local-parking" size={24} color="#B19CD8" />
-                <Text style={styles.slotId}>Slot {item.slotNumber} (Floor {item.floor})</Text>
-                <Text style={[
-                  styles.reservationType,
-                  item.status === 'confirmed' ? styles.confirmedStatus : 
-                  item.status === 'pending' ? styles.pendingStatus : 
-                  styles.completedStatus
-                ]}>
-                  {item.type.toUpperCase()}
-                </Text>
-              </View>
 
-              <View style={styles.detailRow}>
-                <MaterialIcons name="receipt" size={18} color="#666" />
-                <Text style={styles.detailText}>ID: {item.id}</Text>
-              </View>
+        <View style={styles.detailRow}>
+          <MaterialIcons name="receipt" size={18} color="#666" />
+          <Text style={styles.detailText}>ID: {reservation.id}</Text>
+        </View>
 
-              <View style={styles.detailRow}>
-                <MaterialIcons name="calendar-today" size={18} color="#666" />
-                <Text style={styles.detailText}>
-                  {item.startDate} - {item.endDate}
-                </Text>
-              </View>
+        <View style={styles.detailRow}>
+          <MaterialIcons name="calendar-today" size={18} color="#666" />
+          <Text style={styles.detailText}>
+            {reservation.startDate} - {reservation.endDate}
+          </Text>
+        </View>
 
-              <View style={styles.detailRow}>
-                <MaterialIcons name="attach-money" size={18} color="#666" />
-                <Text style={styles.detailText}>Paid: ฿{item.fee}</Text>
-              </View>
+        <TouchableOpacity 
+          style={styles.controlButton}
+          onPress={() => handleControlBlocker(reservation)}
+        >
+          <MaterialIcons name="lock" size={20} color="white" />
+          <Text style={styles.controlButtonText}>Control Blocker</Text>
+        </TouchableOpacity>
+      </View>
 
-              <View style={styles.detailRow}>
-                <MaterialIcons name="info" size={18} color="#666" />
-                <Text style={styles.detailText}>
-                  Status: {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
-                </Text>
-              </View>
-
-              <TouchableOpacity 
-                style={[
-                  styles.controlButton,
-                  item.status !== 'confirmed' && styles.disabledButton
-                ]}
-                onPress={() => handleControlBlocker(item)}
-                disabled={item.status !== 'confirmed'}
-              >
-                <MaterialIcons 
-                  name={item.status === 'confirmed' ? "lock-open" : "lock"} 
-                  size={20} 
-                  color="white" 
-                />
-                <Text style={styles.controlButtonText}>
-                  {item.status === 'confirmed' ? "Open Barrier" : "Not Available"}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-          keyExtractor={item => item.id}
-        />
-      )}
-
+      {/* Back Button */}
       <TouchableOpacity 
         style={styles.backButton}
-        onPress={() => navigation.navigate("Carparking", { username })}
+        onPress={() => navigation.navigate("Parking")}
       >
-        <Text style={styles.backButtonText}>Back to Carparking</Text>
+        <Text style={styles.backButtonText}>Back to Parking</Text>
       </TouchableOpacity>
 
+      {/* Modal */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -182,37 +84,25 @@ const MyParkingScreen = ({ navigation, route }) => {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
-            <MaterialIcons 
-              name="lock-open" 
-              size={60} 
-              color="#B19CD8" 
-              style={styles.modalIcon}
-            />
-            
-            <Text style={styles.modalTitle}>Barrier Control</Text>
+            <MaterialIcons name="lock" size={60} color="#B19CD8" style={styles.modalIcon} />
+            <Text style={styles.modalTitle}>Blocker Control</Text>
             <Text style={styles.modalText}>
-              Open barrier for Slot {selectedReservation?.slotNumber}?
+              You are controlling blocker for Slot {selectedReservation?.slotId}
             </Text>
 
             <View style={styles.modalButtonContainer}>
               <TouchableOpacity 
                 style={[styles.modalButton, styles.cancelButton]}
                 onPress={() => setModalVisible(false)}
-                disabled={isLoading}
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
               
               <TouchableOpacity 
                 style={[styles.modalButton, styles.confirmButton]}
-                onPress={handleConfirmControl}
-                disabled={isLoading}
+                onPress={() => setModalVisible(false)}
               >
-                {isLoading ? (
-                  <ActivityIndicator color="white" />
-                ) : (
-                  <Text style={styles.confirmButtonText}>Open</Text>
-                )}
+                <Text style={styles.confirmButtonText}>Confirm</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -241,36 +131,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#2C3E50',
   },
-  usernameText: {
-    fontSize: 16,
-    color: '#666',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  emptyText: {
-    fontSize: 18,
-    color: '#666',
-    marginTop: 10,
-    marginBottom: 20,
-  },
-  emptyListContent: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  errorText: {
-    fontSize: 18,
-    color: 'red',
-    textAlign: 'center',
-    marginTop: 20,
+  notificationIcon: {
+    padding: 8,
   },
   listContent: {
     paddingHorizontal: 20,
@@ -301,21 +163,13 @@ const styles = StyleSheet.create({
     marginRight: 'auto',
   },
   reservationType: {
+    backgroundColor: '#B19CD8',
     color: 'white',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 6,
     fontSize: 12,
     fontWeight: '600',
-  },
-  confirmedStatus: {
-    backgroundColor: '#4CAF50',
-  },
-  pendingStatus: {
-    backgroundColor: '#FFC107',
-  },
-  completedStatus: {
-    backgroundColor: '#9E9E9E',
   },
   detailRow: {
     flexDirection: 'row',
@@ -336,26 +190,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 15,
   },
-  disabledButton: {
-    backgroundColor: '#cccccc',
-  },
   controlButtonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
-  },
-  findParkingButton: {
-    backgroundColor: '#B19CD8',
-    padding: 12,
-    borderRadius: 8,
-    width: '60%',
-    alignItems: 'center',
-  },
-  findParkingButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
   },
   backButton: {
     backgroundColor: '#B19CD8',
@@ -364,67 +203,11 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginBottom: 20,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   backButtonText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: '600',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContainer: {
-    width: width * 0.8,
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 25,
-    alignItems: 'center',
-  },
-  modalIcon: {
-    marginBottom: 15,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#2C3E50',
-    marginBottom: 8,
-  },
-  modalText: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 25,
-    lineHeight: 22,
-  },
-  modalButtonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-  },
-  modalButton: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 44,
-  },
-  cancelButton: {
-    backgroundColor: '#EEE',
-    marginRight: 10,
-  },
-  confirmButton: {
-    backgroundColor: '#B19CD8',
-  },
-  cancelButtonText: {
-    color: '#666',
-    fontWeight: '600',
-  },
-  confirmButtonText: {
-    color: 'white',
     fontWeight: '600',
   },
 });

@@ -24,6 +24,15 @@ const PaymentScreen = ({ route }) => {
     }, 1500);
   };
 
+  navigation.navigate('Myparking', {
+    slotNumber,
+    floor,
+    parkingType,
+    startTime,
+    endTime,
+    fee
+  });
+
   const qrCodeUrl = `https://example.com/payment?user=${username}&ref=${bankReferenceNumber}&fee=${fee}`;
 
   return (
