@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Image, ScrollView } from 'react-native';
 
 const PaymentScreen = ({ route }) => {
   const { username, parkingType, fee, floor, slotNumber, startTime, endTime, duration, bankReferenceNumber } = route.params || {};
-  
+
   const qrCodeUrl = `https://example.com/payment?user=${username}&ref=${bankReferenceNumber}&fee=${fee}`;
 
   return (
@@ -17,9 +17,8 @@ const PaymentScreen = ({ route }) => {
         <Text style={styles.summaryText}>End Time: {new Date(endTime).toLocaleTimeString()}</Text>
         <Text style={styles.summaryText}>Start Time: {new Date(startTime).toLocaleTimeString()}</Text>
         <Text style={styles.summaryText}>Bank Reference: {bankReferenceNumber}</Text>
-
-        
       </View>
+      
       <Image source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrCodeUrl)}` }} style={styles.qrCode} />
       <TouchableOpacity style={styles.confirmButton} onPress={() => Alert.alert("Payment Confirmed")}>
         <Text style={styles.buttonText}>Confirm Payment</Text>

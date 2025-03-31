@@ -274,11 +274,11 @@ const ReservationScreen = ({ route, navigation }) => {
           <DateTimePicker
             value={startTime}
             mode="time"
-            display="default"
-            onChange={(event, selectedTime) => {
-              setShowStartTimePicker(false);
-              if (selectedTime) {
-                updateEndTime(selectedTime);
+            display="spinner"
+            onChange={(event, selectedDate) => {
+              if (selectedDate) {
+                updateEndTime(selectedDate);
+                setShowStartTimePicker(false);
               }
             }}
           />
@@ -288,25 +288,21 @@ const ReservationScreen = ({ route, navigation }) => {
           <DateTimePicker
             value={startDate}
             mode="date"
-            display="default"
-            minimumDate={new Date()}
+            display="spinner"
             onChange={(event, selectedDate) => {
-              setShowStartDatePicker(false);
               if (selectedDate) {
-                const monthsNum = months ? parseInt(months) : 1;
-                const newEndDate = new Date(selectedDate);
-                newEndDate.setMonth(newEndDate.getMonth() + monthsNum);
                 setStartDate(selectedDate);
-                setEndDate(newEndDate);
-                updateEndTime(startTime);
+                setShowStartDatePicker(false);
               }
             }}
           />
         )}
+
       </ScrollView>
     </KeyboardAvoidingView>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {
