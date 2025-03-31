@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
-  View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, 
-  Dimensions, SafeAreaView 
+  View, Text, StyleSheet, TouchableOpacity, Modal, SafeAreaView, Dimensions 
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
@@ -11,14 +10,15 @@ const MyParkingScreen = ({ route, navigation }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedReservation, setSelectedReservation] = useState(null);
 
-  // รับข้อมูลการจองจาก PaymentScreen ที่ผ่านมา
-  const { slotNumber, floor, parkingType, startTime, endTime, fee } = route.params || {};
+  // Get reservation data passed from PaymentScreen
+  const { slotNumber, floor, parkingType, startTime, endTime, fee, reservationId } = route.params || {};
 
+  // Updated reservation object without random ID
   const reservation = {
-    id: `RES-${Math.floor(1000 + Math.random() * 9000)}`, // สุ่ม ID
+    id: reservationId, // Using the reservation ID passed from PaymentScreen
     slotId: slotNumber,
     type: parkingType,
-    startDate: new Date(startTime).toISOString().split('T')[0], // แปลงเป็น YYYY-MM-DD
+    startDate: new Date(startTime).toISOString().split('T')[0], // Convert to YYYY-MM-DD
     endDate: new Date(endTime).toISOString().split('T')[0],
     fee,
     floor
@@ -38,7 +38,7 @@ const MyParkingScreen = ({ route, navigation }) => {
         </TouchableOpacity>
       </View>
 
-      {/* แสดงการจองที่ได้รับจาก PaymentScreen */}
+      {/* Reservation Card */}
       <View style={styles.reservationCard}>
         <View style={styles.cardHeader}>
           <MaterialIcons name="local-parking" size={24} color="#B19CD8" />
@@ -70,9 +70,9 @@ const MyParkingScreen = ({ route, navigation }) => {
       {/* Back Button */}
       <TouchableOpacity 
         style={styles.backButton}
-        onPress={() => navigation.navigate("Parking")}
+        onPress={() => navigation.navigate("Carparking")}
       >
-        <Text style={styles.backButtonText}>Back to Parking</Text>
+        <Text style={styles.backButtonText}>Back to Carparking</Text>
       </TouchableOpacity>
 
       {/* Modal */}
@@ -87,7 +87,7 @@ const MyParkingScreen = ({ route, navigation }) => {
             <MaterialIcons name="lock" size={60} color="#B19CD8" style={styles.modalIcon} />
             <Text style={styles.modalTitle}>Blocker Control</Text>
             <Text style={styles.modalText}>
-              You are controlling blocker for Slot {selectedReservation?.slotId}
+              You are controlling the blocker for Slot {selectedReservation?.slotId}
             </Text>
 
             <View style={styles.modalButtonContainer}>
@@ -122,33 +122,29 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: 'white',
+    backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#EEE',
+    borderBottomColor: '#E1E1E1',
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: 'bold',
     color: '#2C3E50',
   },
   notificationIcon: {
     padding: 8,
   },
-  listContent: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 20,
-  },
   reservationCard: {
-    backgroundColor: 'white',
+    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 20,
-    marginBottom: 16,
+    marginTop: 20,
+    marginHorizontal: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 6,
-    elevation: 3,
+    elevation: 6,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -160,16 +156,16 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#2C3E50',
     marginLeft: 10,
-    marginRight: 'auto',
   },
   reservationType: {
     backgroundColor: '#B19CD8',
-    color: 'white',
-    paddingHorizontal: 10,
+    color: '#fff',
     paddingVertical: 4,
+    paddingHorizontal: 10,
     borderRadius: 6,
     fontSize: 12,
     fontWeight: '600',
+    marginLeft: 'auto',
   },
   detailRow: {
     flexDirection: 'row',
@@ -191,7 +187,7 @@ const styles = StyleSheet.create({
     marginTop: 15,
   },
   controlButtonText: {
-    color: 'white',
+    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
@@ -201,13 +197,67 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 8,
     marginHorizontal: 20,
-    marginBottom: 20,
+    marginTop: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backButtonText: {
-    color: 'white',
+    color: '#fff',
     fontSize: 16,
+    fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContainer: {
+    backgroundColor: '#fff',
+    padding: 30,
+    borderRadius: 12,
+    width: width * 0.8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalIcon: {
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#2C3E50',
+    marginBottom: 10,
+  },
+  modalText: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 20,
+  },
+  modalButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  modalButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    margin: 5,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#D9534F',
+  },
+  cancelButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  confirmButton: {
+    backgroundColor: '#5BC0DE',
+  },
+  confirmButtonText: {
+    color: '#fff',
     fontWeight: '600',
   },
 });

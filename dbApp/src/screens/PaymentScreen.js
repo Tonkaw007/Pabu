@@ -20,18 +20,17 @@ const PaymentScreen = ({ route }) => {
     setTimeout(() => {
       setIsLoading(false);
       Alert.alert("Payment Confirmed");
-      navigation.navigate('Myparking');
+      navigation.navigate('Myparking', {
+        slotNumber,
+        floor,
+        parkingType,
+        startTime,
+        endTime,
+        fee,
+        reservationId: bankReferenceNumber // เพิ่ม reservationId ที่นี่
+      });
     }, 1500);
   };
-
-  navigation.navigate('Myparking', {
-    slotNumber,
-    floor,
-    parkingType,
-    startTime,
-    endTime,
-    fee
-  });
 
   const qrCodeUrl = `https://example.com/payment?user=${username}&ref=${bankReferenceNumber}&fee=${fee}`;
 
