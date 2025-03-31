@@ -12,11 +12,13 @@ const PaymentScreen = ({ route }) => {
       <View style={styles.summaryBox}>
         <Text style={styles.summaryText}>Slot: {slotNumber} (Floor {floor})</Text>
         <Text style={styles.summaryText}>Type: {parkingType.toUpperCase()}</Text>
-        <Text style={styles.summaryText}>Fee: {fee} THB</Text>
-        <Text style={styles.summaryText}>Bank Reference: {bankReferenceNumber}</Text>
-        <Text style={styles.summaryText}>Start Time: {new Date(startTime).toLocaleTimeString()}</Text>
-        <Text style={styles.summaryText}>End Time: {new Date(endTime).toLocaleTimeString()}</Text>
         <Text style={styles.summaryText}>Duration: {duration} hour(s)</Text>
+        <Text style={styles.summaryText}>Fee: {fee} THB</Text>
+        <Text style={styles.summaryText}>End Time: {new Date(endTime).toLocaleTimeString()}</Text>
+        <Text style={styles.summaryText}>Start Time: {new Date(startTime).toLocaleTimeString()}</Text>
+        <Text style={styles.summaryText}>Bank Reference: {bankReferenceNumber}</Text>
+
+        
       </View>
       <Image source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrCodeUrl)}` }} style={styles.qrCode} />
       <TouchableOpacity style={styles.confirmButton} onPress={() => Alert.alert("Payment Confirmed")}>
