@@ -1,21 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  Alert, 
-  Image, 
-  ScrollView 
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Image, ScrollView } from 'react-native';
 
-const PaymentScreen = ({ route, navigation }) => {
+const PaymentScreen = ({ route }) => {
   const { username, slotId, parkingType, fee, floor, slotNumber } = route.params || {};
-
   const [bankReferenceNumber, setBankReferenceNumber] = useState('');
 
   useEffect(() => {
-    // สร้าง bankReferenceNumber หลังจากเข้าหน้านี้
     const generateBankReference = () => {
       const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
       let result = '';
@@ -24,33 +14,22 @@ const PaymentScreen = ({ route, navigation }) => {
       }
       return result;
     };
-
     setBankReferenceNumber(generateBankReference());
   }, []);
 
-  // สร้าง QR Code URL
   const qrCodeUrl = `https://example.com/payment?user=${username}&ref=${bankReferenceNumber}&fee=${fee}`;
 
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.header}>Payment Confirmation</Text>
-
       <View style={styles.summaryBox}>
         <Text style={styles.summaryText}>Slot: {slotNumber} (Floor {floor})</Text>
         <Text style={styles.summaryText}>Type: {parkingType.toUpperCase()}</Text>
         <Text style={styles.summaryText}>Fee: {fee} THB</Text>
         <Text style={styles.summaryText}>Bank Reference: {bankReferenceNumber}</Text>
       </View>
-
-      <Image 
-        source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrCodeUrl)}` }} 
-        style={styles.qrCode} 
-      />
-
-      <TouchableOpacity 
-        style={styles.confirmButton} 
-        onPress={() => Alert.alert("Payment Confirmed")}
-      >
+      <Image source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrCodeUrl)}` }} style={styles.qrCode} />
+      <TouchableOpacity style={styles.confirmButton} onPress={() => Alert.alert("Payment Confirmed")}>
         <Text style={styles.buttonText}>Confirm Payment</Text>
       </TouchableOpacity>
     </ScrollView>
